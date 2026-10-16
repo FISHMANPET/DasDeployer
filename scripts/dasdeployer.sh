@@ -15,7 +15,7 @@
 
 # Change the next 3 lines to suit where you install your script and what you want to call it
 DIR=/home/pi/DasDeployer
-DAEMON=$DIR/dasdeployer/dasdeployer.py
+DAEMON=$DIR/dasdeployer/run.sh
 DAEMON_NAME=dasdeployer
 
 # Add any command line options for your daemon here

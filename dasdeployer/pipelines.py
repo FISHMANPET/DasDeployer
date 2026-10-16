@@ -1,7 +1,7 @@
 # from azure.devops.connection import Connection
 # from msrest.authentication import BasicAuthentication
 # from azure.devops.released.build import Build, BuildClient, BuildDefinition
-# from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum

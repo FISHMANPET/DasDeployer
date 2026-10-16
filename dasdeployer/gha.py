@@ -99,21 +99,40 @@ class GhaWorkflows(Pipelines):
         else:
             return None
 
+        # print('about to get id')
+        print(self.config.gha_workflows)
         workflow_id = self.config.gha_workflows[approve_env]
+        # print('got id')
         workflow = self.connection.get_workflow(workflow_id)
-
+        print(workflow)
         today = date.today().isoformat()
         pre_runs = workflow.get_runs(created=f">={today}")
+        print(pre_runs)
         pre_runs_sorted = sorted(pre_runs, key=lambda x: x.run_number, reverse=True)
-        last_run = pre_runs_sorted[0]
+        print(pre_runs_sorted)
+        if pre_runs_sorted:
+            last_run = pre_runs_sorted[0]
+        else:
+            last_run = None
         workflow.create_dispatch(ref=source_branch, inputs=params)
         for _ in range(30):
             time.sleep(2)
             post_runs = workflow.get_runs(created=f">={today}")
             post_runs_sorted = sorted(post_runs, key=lambda x: x.run_number, reverse=True)
-            new_run = post_runs_sorted[0]
-            if len(post_runs_sorted) == len(pre_runs_sorted) + 1 and new_run.run_number > last_run.run_number:
+            print(post_runs_sorted)
+            if post_runs_sorted:
+                new_run = post_runs_sorted[0]
+            else:
+                new_run = None
+            if (
+                    last_run and new_run and
+                    len(post_runs_sorted) == len(pre_runs_sorted) + 1 and
+                    new_run.run_number > last_run.run_number
+                ):
                 break
+            elif last_run is None and new_run:
+                break
+            print('still waiting')
         else:
             return None
 
@@ -158,7 +177,10 @@ class GhaPollStatusThread(PollStatusThread):
                 # if value:
                 if e == 'Dev':
                     self._last_result.enable_dev = bool(value)
-                    self._last_result.branch_dev = 'master'
+                    if self._last_result.enable_dev:
+                        self._last_result.branch_dev = value.branch
+                    else:
+                        self._last_result.branch_dev = 'master'
                     state = cast(GhaBuildState, self._last_result.build_dev)
                     # state = self._last_result.build_dev
                     # result.deploying_dev = deploying
@@ -166,7 +188,10 @@ class GhaPollStatusThread(PollStatusThread):
 
                 elif e == 'Test':
                     self._last_result.enable_tst = bool(value)
-                    self._last_result.branch_tst = 'master'
+                    if self._last_result.enable_tst:
+                        self._last_result.branch_tst = value.branch
+                    else:
+                        self._last_result.branch_dev = 'master'
                     state = cast(GhaBuildState, self._last_result.build_tst)
                     # state = self._last_result.build_tst
                     # result.deploying_tst = deploying
@@ -180,7 +205,10 @@ class GhaPollStatusThread(PollStatusThread):
                     # result.build_stage = buildDef.latest_build
                 elif e == 'Prod':
                     self._last_result.enable_prod = bool(value)
-                    self._last_result.branch_prod = 'master'
+                    if self._last_result.enable_prod:
+                        self._last_result.branch_prod = value.branch
+                    else:
+                        self._last_result.branch_prod = 'master'
                     state = cast(GhaBuildState, self._last_result.build_prod)
                     # state = self._last_result.build_prod
 
@@ -189,18 +217,18 @@ class GhaPollStatusThread(PollStatusThread):
                     if run.status == 'completed':
                         deploying = False
                         if run.conclusion == 'success':
-                            state.result = QueryResultStatus.SUCCEEDED
+                            state.result = QueryResultStatus.SUCCEEDED.value
                         elif run.conclusion == 'failure':
-                            state.result = QueryResultStatus.FAILED
+                            state.result = QueryResultStatus.FAILED.value
                         elif run.conclusion == 'cancelled':
-                            state.result = QueryResultStatus.CANCELED
+                            state.result = QueryResultStatus.CANCELED.value
                         else:
                             # action_required, neutral, skipped, stale
                             return None
                     else:
                         # queued, in_progress, waiting, requested, pending
                         deploying = True
-                        state.result = QueryResultStatus.RUNNING
+                        state.result = QueryResultStatus.RUNNING.value
                 else:
                     deploying = False
 

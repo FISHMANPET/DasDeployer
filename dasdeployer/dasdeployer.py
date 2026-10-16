@@ -170,16 +170,18 @@ def deploy_question(environment: str) -> None:
     global params
     params = {}
 
-    if environment == "Prod" and pipes:
+    if pipes:
         env = pipes.config.environments[environment]
         if env:
-            prompts = env.prompted_parms
-            for prompt in prompts:
+            for prompt in env.prompted_parms:
                 value = get_prompt_value(prompt)
                 print(f"value={value} param_name={prompt.paramater_name}")
                 print(f"params before={params}")
                 params[prompt.paramater_name] = value
                 print(f"params after={params}")
+            for param in env.fixed_parms:
+                params[param.name] = param.value
+
 
     if keys_enabled:
         keys.one.when_pressed = turn_one
